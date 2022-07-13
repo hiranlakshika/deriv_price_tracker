@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'business_logics/blocs/price_tracker_bloc.dart';
 import 'business_logics/repositories/remote_config_repository.dart';
 import 'business_logics/repositories/remote_config_repository_impl.dart';
+import 'networking/web_scoket_connection_manager.dart';
 import 'services/remote_config_service.dart';
 import 'services/remote_config_service_impl.dart';
 
@@ -17,4 +18,6 @@ injectDependencies() {
 
   // Services
   GetIt.I.registerLazySingleton<RemoteConfigService>(() => RemoteConfigServiceImpl());
+
+  GetIt.I.registerLazySingleton(() => WebSocketConnectionManager());
 }
