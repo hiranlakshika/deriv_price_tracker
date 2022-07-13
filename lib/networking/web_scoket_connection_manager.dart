@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 import '../business_logics/blocs/price_tracker_bloc.dart';
 import '../business_logics/models/symbol.dart';
@@ -10,14 +11,13 @@ import '../dependencies_locator.dart';
 import '../services/remote_config_service.dart';
 
 class WebSocketConnectionManager {
-  static WebSocket? webSocket;
+  IOWebSocketChannel? _channel;
   final _priceTrackerBloc = serviceLocator<PriceTrackerBloc>();
 
   Future<void> _connect() async {
     await serviceLocator<RemoteConfigService>().getRemoteConfig().then((config) async {
       String appId = config.getString('app_id');
-
-      webSocket = await WebSocket.connect(Uri.parse("wss://ws.binaryws.com/websockets/v3?app_id=$appId").toString());
+      _channel = IOWebSocketChannel.connect(Uri.parse('wss://ws.binaryws.com/websockets/v3?app_id=$appId'));
     });
   }
 
@@ -27,13 +27,13 @@ class WebSocketConnectionManager {
   }
 
   void stop() {
-    webSocket?.close();
+    _channel?.sink.close(status.normalClosure);
   }
 
   void _listenSocket() async {
     await _connect();
-
-    webSocket?.listen((data) {
+    getSymbols();
+    _channel?.stream.listen((data) {
       debugPrint('>>>>>>>>>>>>> data : $data');
       if (data != null) {
         var decodedData = json.decode(data);
@@ -46,23 +46,19 @@ class WebSocketConnectionManager {
             );
             _priceTrackerBloc.addSymbols(symbols);
           } else if (decodedData['msg_type'] == 'tick') {
-              Tick tick = Tick.fromJson(decodedData['tick']);
-              _priceTrackerBloc.addTick(tick);
+            Tick tick = Tick.fromJson(decodedData['tick']);
+            _priceTrackerBloc.addTick(tick);
           }
         }
       }
     });
   }
 
-  void reset() {
-    webSocket?.add('');
-  }
-
   void getSymbols() {
-    webSocket?.add(json.encode({"active_symbols": "brief", "product_type": "basic"}));
+    _channel?.sink.add(json.encode({"active_symbols": "brief", "product_type": "basic"}));
   }
 
   void getTicks(String symbol) {
-    webSocket?.add(json.encode({"ticks": symbol, "subscribe": 1}));
+    _channel?.sink.add(json.encode({"ticks": symbol, "subscribe": 1}));
   }
 }

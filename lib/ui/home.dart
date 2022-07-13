@@ -51,7 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
               return _loadingWidget();
             }
 
-            if(snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.connectionState == ConnectionState.done) {
               return Center(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -130,7 +130,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     .map((element) => element.symbol)
                     .toList() ??
                 [];
-            if (_symbols.isNotEmpty) _symbolValue = _symbols.first;
+            if (_symbols.isNotEmpty) {
+              if (_symbolValue.isEmpty) _webSocketManager.getTicks(_symbols.first);
+              _symbolValue = _symbols.first;
+            } else {
+              _webSocketManager.stop();
+            }
           }
 
           return DropdownButton<String>(
@@ -168,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
 
           return Text(
-            'Current price : ${_currentPrice.toStringAsFixed(2)}',
+            'Current price : $_currentPrice',
             style: TextStyle(color: _textColor),
           );
         });
